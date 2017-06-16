@@ -36,6 +36,19 @@ def find_no_engagements_enrollments(enrollments, engagement_students):
             result.append(en)
     return result
 
+def find_udacity_test_accounts(accounts):
+    result = set() 
+    for account in accounts:
+        if account['is_udacity']:
+            result.add(account['account_key'])
+    return result
+
+def remove_udacity_test_accounts(test_accounts, accounts):
+    result = []
+    for account in accounts:
+        if account['account_key'] not in test_accounts:
+            result.append(account)
+    return result
 
 enrollments = read_csv('enrollments.csv')
 daily_engagement = read_csv('daily_engagement.csv')
@@ -80,6 +93,10 @@ unique_submissions = get_unique_students(submissions)
 print('total number of submissions is: ' + str(num_of_submissions))
 print('unique number of submissions is: ' + str(len(unique_submissions)))
 
-no_engagement_enrollments = find_no_engagements_enrollments(enrollments, unique_engagements)
-for s in no_engagement_enrollments:
-    print(s)
+test_accounts = find_udacity_test_accounts(enrollments)
+no_test_accounts_enrollments = remove_udacity_test_accounts(test_accounts, enrollments)
+no_test_accounts_engagements = remove_udacity_test_accounts(test_accounts, daily_engagement)
+no_test_accounts_submissions = remove_udacity_test_accounts(test_accounts, submissions)
+print('the number of enrollments without test accounts is: ' + str(len(no_test_accounts_enrollments)))
+print('the number of engagements without test accounts is: ' + str(len(no_test_accounts_engagements)))
+print('the number of submissions without test accounts is: ' + str(len(no_test_accounts_submissions)))
