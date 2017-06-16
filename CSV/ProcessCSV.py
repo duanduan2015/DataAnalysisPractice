@@ -29,6 +29,14 @@ def get_unique_students(records):
         unique_students.add(student['account_key'])
     return unique_students
 
+def find_no_engagements_enrollments(enrollments, engagement_students):
+    result = []
+    for en in enrollments:
+        if (en['account_key'] not in engagement_students) and (en['cancel_date'] != en['join_date']):
+            result.append(en)
+    return result
+
+
 enrollments = read_csv('enrollments.csv')
 daily_engagement = read_csv('daily_engagement.csv')
 submissions = read_csv('project_submissions.csv')
@@ -67,9 +75,11 @@ print('unique number of engagements is: ' + str(len(unique_engagements)))
 for submission in submissions:
     submission['creation_date'] = parse_date(submission['creation_date'])
     submission['completion_date'] = parse_date(submission['completion_date'])
-    #print(submission)
 num_of_submissions = len(submissions)
 unique_submissions = get_unique_students(submissions) 
 print('total number of submissions is: ' + str(num_of_submissions))
 print('unique number of submissions is: ' + str(len(unique_submissions)))
 
+no_engagement_enrollments = find_no_engagements_enrollments(enrollments, unique_engagements)
+for s in no_engagement_enrollments:
+    print(s)
