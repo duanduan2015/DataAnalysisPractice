@@ -1,5 +1,8 @@
 import unicodecsv
+from collections import defaultdict
+import numpy as np
 from datetime import datetime
+import datetime as dt
 def read_csv(filename):
     with open(filename, 'rb') as f:
         reader = unicodecsv.DictReader(f)
@@ -50,6 +53,50 @@ def remove_udacity_test_accounts(test_accounts, accounts):
             result.append(account)
     return result
 
+def find_paid_students(enrollments):
+    result = {}
+    for enrollment in enrollments:
+        if not enrollment['is_canceled'] or enrollment['days_to_cancel'] > 7:
+            account = enrollment['account_key']
+            join_date = enrollment['join_date']
+            if account not in result.keys() or result[account] < join_date:
+                result[account] = join_date
+    return result                
+
+def get_paid_students_first_week_engagement(students, engagements):
+    result = []
+    for engagement in engagements:
+        account_key = engagement['account_key']
+        if account_key not in students.keys():
+            continue
+        join_date = students[account_key]
+        first_week_date = join_date + dt.timedelta(days=7)
+        #if engagement['utc_date'] >= join_date and engagement['utc_date'] < first_week_date:
+        if (engagement['utc_date'] - join_date).days < 7 and (engagement['utc_date'] - join_date).days >= 0:
+            result.append(engagement)
+    return result
+
+def get_all_students_label_list(data, key, label):
+    students_list = defaultdict(list) 
+    for item in data:
+        account = item[key]
+        asked_label = item[label]
+        students_list[account].append(asked_label)
+    return students_list
+
+def get_statistic_list(students_dict):
+    statistic_list = []
+    for student, data_list in students_dict.items():
+        statistic_list.append(np.sum(data_list))
+    return statistic_list
+
+def print_statistic_message(label, data_list):
+    print(f'the average number of {label} is: ' + str(np.average(data_list)))
+    print(f'the standard deviation of {label} is: ' + str(np.std(data_list)))
+    print(f'the min number of {label} is: ' + str(np.min(data_list)))
+    print(f'the max number of {label} is: ' + str(np.max(data_list)))
+
+
 enrollments = read_csv('enrollments.csv')
 daily_engagement = read_csv('daily_engagement.csv')
 submissions = read_csv('project_submissions.csv')
@@ -57,8 +104,7 @@ submissions = read_csv('project_submissions.csv')
 for enrollment in enrollments:
     enrollment['join_date'] = parse_date(enrollment['join_date'])
     enrollment['cancel_date'] = parse_date(enrollment['cancel_date'])
-    if enrollment['is_udacity'] == 'True':
-        enrollment['is_udacity'] = True
+    if enrollment['is_udacity'] == 'True': enrollment['is_udacity'] = True
     else:
         enrollment['is_udacity'] = False
     if enrollment['is_canceled'] == 'True':
@@ -100,3 +146,17 @@ no_test_accounts_submissions = remove_udacity_test_accounts(test_accounts, submi
 print('the number of enrollments without test accounts is: ' + str(len(no_test_accounts_enrollments)))
 print('the number of engagements without test accounts is: ' + str(len(no_test_accounts_engagements)))
 print('the number of submissions without test accounts is: ' + str(len(no_test_accounts_submissions)))
+
+paid_students = find_paid_students(no_test_accounts_enrollments)
+print('the number of paid students is: ' + str(len(paid_students)))
+
+first_week_engagement_for_paid_students = get_paid_students_first_week_engagement(paid_students, no_test_accounts_engagements)
+print('the number of first week paid students engagements is: ' + str(len(first_week_engagement_for_paid_students)))
+
+students_total_time_dict = get_all_students_label_list(first_week_engagement_for_paid_students, 'account_key', 'total_minutes_visited')
+total_time_list = get_statistic_list(students_total_time_dict)
+print_statistic_message('total minutes', total_time_list)
+
+students_total_lessons_dict = get_all_students_label_list(first_week_engagement_for_paid_students, 'account_key', 'lessons_completed')
+total_lessons_list = get_statistic_list(students_total_lessons_dict)
+print_statistic_message('lessons', total_lessons_list)
